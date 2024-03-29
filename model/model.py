@@ -1,11 +1,13 @@
 """Models."""
+
 import logging
 import math
 from typing import Dict
 
 import torch
 from torch import nn
-from torchvision.models.detection import retinanet_resnet50_fpn_v2, RetinaNet_ResNet50_FPN_V2_Weights
+from torchvision.models import ResNet50_Weights, resnet50
+
 
 class TraitDetector(nn.Module):
 
@@ -13,31 +15,33 @@ class TraitDetector(nn.Module):
         super(TraitDetector, self).__init__()
 
         # The network is defined as a sequence of operations
-        self.retinanet = retinanet_resnet50_fpn_v2(pretrained=True, weights_backbone=RetinaNet_ResNet50_FPN_V2_Weights)
-        self.retinanet.requires_grad_(False)
-        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, train_features)
+        self.resnet = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        self.resnet.requires_grad_(False)
+        self.resnet.fc = nn.Linear(in_features=2048, out_features=train_features)
+        # self.resnet.train = lambda x: True
+        #
+        # self.resnet.training = False
 
-        self.tabular_nn = nn.Sequential(nn.Linear(in_features=train_features, out_features=train_features),
-        nn.Dropout(p=.3),
-        nn.Linear(in_features=train_features, out_features=train_features),
-        nn.Dropout(p=.3),
-        nn.Linear(in_features=train_features, out_features=train_features),
-                      )
+        self.tabular_nn = nn.Sequential(
+            nn.Linear(in_features=train_features, out_features=train_features),
+            nn.Dropout(p=0.3),
+            nn.Linear(in_features=train_features, out_features=train_features),
+            nn.Dropout(p=0.3),
+            nn.Linear(in_features=train_features, out_features=train_features),
+        )
 
-        self.merge_nn = nn.Sequential(nn.Linear(in_features=train_features, out_features=train_features),
-        nn.Dropout(p=.3),
-        nn.Linear(in_features=train_features, out_features=n_classes))
-
-
-
+        self.merge_nn = nn.Sequential(
+            nn.Linear(in_features=2 * train_features, out_features=train_features),
+            nn.Dropout(p=0.3),
+            nn.Linear(in_features=train_features, out_features=n_classes),
+        )
 
     # Specify the computations performed on the data
     def forward(self, x_image, x_row):
-        x_image = self.retinanet(x_image)
+        x_image = self.resnet(x_image)
         x_row = self.tabular_nn(x_row)
 
-        return self.merge_nn(torch.cat(x_image, x_row))
-
+        return self.merge_nn(torch.cat((x_image, x_row), axis=1))
 
     def predict(self, x_image, x_row):
 
