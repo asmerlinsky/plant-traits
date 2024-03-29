@@ -1,0 +1,26 @@
+repos:
+  - repo: local
+    hooks:
+
+      - id: isort
+        name: 🔀 isort
+        entry: poetry run isort
+        language: system
+        types: [python]
+        stages: [commit]
+
+      - id: black
+        name: ☕️ black
+        entry: poetry run black
+        language: system
+        types: [python]
+        stages: [commit]
+
+
+      - id: pylint
+        name: 🌟 pylint
+        entry: poetry run pylint --init-hook="import sys; sys.setrecursionlimit(5 * sys.getrecursionlimit())"
+        language: system
+        types: [python]
+        stages: [commit]
+
