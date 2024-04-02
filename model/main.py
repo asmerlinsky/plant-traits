@@ -5,15 +5,15 @@ from torch.utils.data import DataLoader, random_split
 
 from model.dataset import PlantDataset, getTransforms
 from model.model import TraitDetector
-from model.train import R2_pred, train, val_eval, rmse
+from model.train import R2_pred, rmse, train, val_eval
 from model.utils import set_device
 
 PATH = "./stored_weights/weights.model"
 DEVICE = set_device()
 
-from logging import getLogger, basicConfig, INFO, StreamHandler, FileHandler
+from logging import INFO, FileHandler, StreamHandler, basicConfig, getLogger
 
-file_handler = FileHandler(filename='tmp.log')
+file_handler = FileHandler(filename="tmp.log")
 stdout_handler = StreamHandler(stream=sys.stdout)
 basicConfig(level=INFO, handlers=[file_handler, stdout_handler])
 
@@ -27,9 +27,6 @@ def main():
     train_loss = []
     N_EPOCHS = 1000
     BATCH_SIZE = 100
-
-
-
 
     train_tf, val_tf = getTransforms()
 
@@ -47,10 +44,12 @@ def main():
 
     detector = TraitDetector(n_classes=6, train_features=dataset.train_columns.shape[0])
 
-    loss_fn = nn.MSELoss(reduction='mean')
+    loss_fn = nn.MSELoss(reduction="mean")
     optimizer = optim.Adam(detector.parameters(), lr=0.001, weight_decay=1e-3)
     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, threshold_mode='rel')
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, patience=10, threshold_mode="rel"
+    )
 
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
@@ -70,7 +69,7 @@ def main():
 
         logger.info(
             f"R2: {r2:2.3f}, train loss: {t_loss:6,.2f}, val_loss: {v_loss:6,.2f}, learning_rate: {optimizer.param_groups[0]['lr']:1.6f}"
-            )
+        )
 
         r2_est.append(r2)
 

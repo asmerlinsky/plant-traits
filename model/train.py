@@ -9,8 +9,10 @@ def R2_pred(y_pred, y_true):
     SS_tot = torch.pow(y_true - y_true.mean(axis=0), 2).sum()
     return 1 - SS_residuals / SS_tot
 
+
 def rmse(y_pred, y_true):
     return torch.pow(y_pred - y_true, 2).sum()
+
 
 def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, device):
     model.train()
@@ -33,7 +35,6 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, devic
 
         optimizer.step()
         train_loss.append(t_loss.cpu().detach().numpy())
-
 
     model.eval()
     return np.sqrt(np.sum(train_loss))
