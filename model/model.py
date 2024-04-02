@@ -24,15 +24,19 @@ class TraitDetector(nn.Module):
 
         self.tabular_nn = nn.Sequential(
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.Dropout(p=0.3),
+            nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.Dropout(p=0.3),
+            nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
+            nn.ReLU(),
         )
 
         self.merge_nn = nn.Sequential(
             nn.Linear(in_features=2 * train_features, out_features=train_features),
-            nn.Dropout(p=0.3),
+            # nn.Dropout(p=0.3),
+            nn.ReLU(),
             nn.Linear(in_features=train_features, out_features=n_classes),
         )
 

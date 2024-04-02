@@ -9,8 +9,10 @@ def R2_pred(y_pred, y_true):
     SS_tot = torch.pow(y_true - y_true.mean(axis=0), 2).sum()
     return 1 - SS_residuals / SS_tot
 
+def rmse(y_pred, y_true):
+    return torch.pow(y_pred - y_true, 2).sum()
 
-def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
+def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, device):
     model.train()
     train_loss = []
 
@@ -31,10 +33,10 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
 
         optimizer.step()
         train_loss.append(t_loss.cpu().detach().numpy())
-    #         tk0.set_postfix(t_loss=train_loss[-1])
+
 
     model.eval()
-    return np.mean(train_loss)
+    return np.sqrt(np.sum(train_loss))
 
 
 def val_eval(dataloader, model, loss_fn, device):
@@ -64,5 +66,5 @@ def val_eval(dataloader, model, loss_fn, device):
     return (
         torch.FloatTensor(y_val_list),
         torch.FloatTensor(pred_list),
-        np.mean(val_loss_list),
+        np.sqrt(np.sum(val_loss_list)),
     )
