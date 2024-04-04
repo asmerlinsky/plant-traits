@@ -7,7 +7,7 @@ from model.dataset import PlantDataset, getTransforms
 from model.model import TraitDetector
 from model.train import R2_pred, rmse, train, val_eval
 from model.utils import set_device
-
+from model.constants import BATCH_SIZE, SAMPLE_SIZE, N_EPOCHS
 PATH = "./stored_weights/weights.model"
 DEVICE = set_device()
 
@@ -25,8 +25,7 @@ def main():
     r2_est = []
     val_loss = []
     train_loss = []
-    N_EPOCHS = 1000
-    BATCH_SIZE = 100
+
 
     train_tf, val_tf = getTransforms()
 
@@ -35,7 +34,7 @@ def main():
         "data/planttraits2024/train_images",
         applied_transforms=train_tf,
         labeled=True,
-        # num_plants=2000
+        num_plants=4000
     )
 
     train_dataset, val_dataset = random_split(dataset, [0.75, 0.25])
@@ -45,10 +44,11 @@ def main():
     detector = TraitDetector(n_classes=6, train_features=dataset.train_columns.shape[0])
 
     loss_fn = nn.MSELoss(reduction="mean")
-    optimizer = optim.Adam(detector.parameters(), lr=0.001, weight_decay=1e-3)
+    # optimizer = optim.Adam(detector.parameters(), lr=0.005, weight_decay=1e-2)
+    optimizer = optim.AdamW(detector.parameters(), lr=0.01, weight_decay=1e-2)
     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=10, threshold_mode="rel"
+        optimizer, patience=20, threshold_mode="rel"
     )
 
     train_loader = DataLoader(

@@ -25,10 +25,10 @@ class TraitDetector(nn.Module):
         self.tabular_nn = nn.Sequential(
             nn.Linear(in_features=train_features, out_features=train_features),
             nn.ReLU(),
-            nn.Dropout(p=0.1),
+            # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
             nn.ReLU(),
-            nn.Dropout(p=0.1),
+            # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
             nn.ReLU(),
         )
