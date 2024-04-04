@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 
-from model.model import TraitDetector
 from model.constants import NUM_PASS
+from model.model import TraitDetector
+
 
 def R2_pred(y_pred, y_true):
     SS_residuals = torch.pow(y_pred - y_true, 2).sum()
@@ -27,7 +28,6 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, devic
         x_train = x_train.to(device, dtype=torch.float)
         y_train = y_train.to(device, dtype=torch.float)
 
-
         train_pred = model(x_image, x_train)
 
         t_loss = loss_fn(train_pred, y_train)
@@ -39,7 +39,6 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, devic
 
             optimizer.step()
             optimizer.zero_grad()
-
 
     model.eval()
     return np.sqrt(np.sum(train_loss))

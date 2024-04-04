@@ -3,11 +3,12 @@ import sys
 from torch import nn, optim, save
 from torch.utils.data import DataLoader, random_split
 
+from model.constants import BATCH_SIZE, N_EPOCHS, SAMPLE_SIZE
 from model.dataset import PlantDataset, getTransforms
 from model.model import TraitDetector
 from model.train import R2_pred, rmse, train, val_eval
 from model.utils import set_device
-from model.constants import BATCH_SIZE, SAMPLE_SIZE, N_EPOCHS
+
 PATH = "./stored_weights/weights.model"
 DEVICE = set_device()
 
@@ -26,7 +27,6 @@ def main():
     val_loss = []
     train_loss = []
 
-
     train_tf, val_tf = getTransforms()
 
     dataset = PlantDataset(
@@ -34,7 +34,7 @@ def main():
         "data/planttraits2024/train_images",
         applied_transforms=train_tf,
         labeled=True,
-        num_plants=4000
+        num_plants=4000,
     )
 
     train_dataset, val_dataset = random_split(dataset, [0.75, 0.25])
