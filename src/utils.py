@@ -2,7 +2,7 @@ import torch
 
 
 def get_variable_cols(variable, columns):
-    return columns[columns.str.contains(prefix)]
+    return columns[columns.str.contains(variable)]
 
 
 def set_device():
