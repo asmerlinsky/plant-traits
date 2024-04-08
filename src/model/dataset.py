@@ -6,13 +6,20 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+from src.constants import SD
+
 SIZE = 512
 
 
 class PlantDataset(Dataset):
+    # targets = ["X4_mean", "X11_mean", "X18_mean", "X26_mean", "X50_mean", "X3112_mean"]
+    # drop_targets = ["X4_mean", "X11_mean", "X18_mean", "X50_mean", "X3112_mean"]
 
-    targets = ["X4_mean", "X11_mean", "X18_mean", "X26_mean", "X50_mean", "X3112_mean"]
-    sd = ["X4_sd", "X11_sd", "X18_sd", "X26_sd", "X50_sd", "X3112_sd"]
+    targets = ["X4_mean", "X18_mean", "X50_mean"]
+
+    drop_targets = ["X11_mean", "X26_mean", "X3112_mean"]
+
+    sd = SD
 
     def __init__(
         self,
@@ -33,7 +40,9 @@ class PlantDataset(Dataset):
             self.df = self.df.iloc[:num_plants]
 
         self.train_columns = self.df.columns[
-            (~self.df.columns.isin(self.targets)) & (~self.df.columns.isin(self.sd))
+            (~self.df.columns.isin(self.targets))
+            & (~self.df.columns.isin(self.sd))
+            & (~self.df.columns.isin(self.drop_targets))
         ]
 
         if applied_transforms:

@@ -1,13 +1,13 @@
 import numpy as np
 import torch
 
-from model.constants import NUM_PASS
-from model.model import TraitDetector
+from src.constants import NUM_PASS
+from src.model.model import TraitDetector
 
 
 def R2_pred(y_pred, y_true):
-    SS_residuals = torch.pow(y_pred - y_true, 2).sum()
-    SS_tot = torch.pow(y_true - y_true.mean(axis=0), 2).sum()
+    SS_residuals = torch.pow(y_pred - y_true, 2).sum(axis=0)
+    SS_tot = torch.pow(y_true - y_true.mean(axis=0), 2).sum(axis=0)
     return 1 - SS_residuals / SS_tot
 
 
@@ -15,7 +15,7 @@ def rmse(y_pred, y_true):
     return torch.pow(y_pred - y_true, 2).sum()
 
 
-def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, device):
+def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
     model.train()
     train_loss = []
     optimizer.zero_grad()
@@ -41,7 +41,7 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, scheduler, devic
             optimizer.zero_grad()
 
     model.eval()
-    return np.sqrt(np.sum(train_loss))
+    return np.sqrt(np.mean(train_loss))
 
 
 def val_eval(dataloader, model, loss_fn, device):
@@ -71,5 +71,5 @@ def val_eval(dataloader, model, loss_fn, device):
     return (
         torch.FloatTensor(y_val_list),
         torch.FloatTensor(pred_list),
-        np.sqrt(np.sum(val_loss_list)),
+        np.sqrt(np.mean(val_loss_list)),
     )

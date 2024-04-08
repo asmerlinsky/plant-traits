@@ -1,6 +1,10 @@
 import torch
 
 
+def get_variable_cols(variable, columns):
+    return columns[columns.str.contains(prefix)]
+
+
 def set_device():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device != "cuda":

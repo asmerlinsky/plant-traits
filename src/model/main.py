@@ -3,11 +3,11 @@ import sys
 from torch import nn, optim, save
 from torch.utils.data import DataLoader, random_split
 
-from model.constants import BATCH_SIZE, N_EPOCHS, SAMPLE_SIZE
-from model.dataset import PlantDataset, getTransforms
-from model.model import TraitDetector
-from model.train import R2_pred, rmse, train, val_eval
-from model.utils import set_device
+from src.constants import BATCH_SIZE, N_EPOCHS
+from src.model.dataset import PlantDataset, getTransforms
+from src.model.model import TraitDetector
+from src.model.train import R2_pred, train, val_eval
+from src.utils import set_device
 
 PATH = "./stored_weights/weights.model"
 DEVICE = set_device()
@@ -30,49 +30,65 @@ def main():
     train_tf, val_tf = getTransforms()
 
     dataset = PlantDataset(
-        "data/planttraits2024/transformed_train_df.csv",
+        "data/planttraits2024/transformed_train_df_2z.csv",
         "data/planttraits2024/train_images",
         applied_transforms=train_tf,
         labeled=True,
-        num_plants=4000,
     )
 
     train_dataset, val_dataset = random_split(dataset, [0.75, 0.25])
     # val_dataset = PlantDataset("data/planttraits2024/test.csv", "data/planttraits2024/test_images", applied_transforms=val_tf,
     #                            labeled=True)
 
-    detector = TraitDetector(n_classes=6, train_features=dataset.train_columns.shape[0])
+    detector = TraitDetector(
+        n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0]
+    )
 
     loss_fn = nn.MSELoss(reduction="mean")
     # optimizer = optim.Adam(detector.parameters(), lr=0.005, weight_decay=1e-2)
-    optimizer = optim.AdamW(detector.parameters(), lr=0.01, weight_decay=1e-2)
+    optimizer = optim.AdamW(detector.parameters(), lr=0.005, weight_decay=1e-3)
     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=20, threshold_mode="rel"
+        optimizer, patience=15, threshold_mode="rel"
     )
 
     train_loader = DataLoader(
-        train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
     )
 
     device = DEVICE  # our device (single GPU core)
     model = detector.to(device)  # put model onto the GPU core
 
     for epoch in range(N_EPOCHS):
-        t_loss = train(train_loader, model, loss_fn, optimizer, scheduler, device)
+        t_loss = train(train_loader, model, loss_fn, optimizer, device)
         y_true, y_pred, v_loss = val_eval(val_loader, model, loss_fn, device)
 
-        r2 = R2_pred(y_pred, y_true)
+        r2_vector = R2_pred(y_pred, y_true)
 
         logger.info(
-            f"R2: {r2:2.3f}, train loss: {t_loss:6,.2f}, val_loss: {v_loss:6,.2f}, learning_rate: {optimizer.param_groups[0]['lr']:1.6f}"
+            f"epoch {epoch}: train loss: {t_loss:6,.5f}, val_loss: {v_loss:6,.5f}, learning_rate: {optimizer.param_groups[0]['lr']:1.6f}"
+        )
+        logger.info(
+            "".join(
+                [
+                    f"{target}: {r2:6,.5f} / "
+                    for target, r2 in zip(dataset.targets, r2_vector)
+                ]
+            )[:-3]
         )
 
-        r2_est.append(r2)
-
+        r2_est.append(r2_vector)
         val_loss.append(v_loss)
         train_loss.append(t_loss)
         scheduler.step(v_loss)

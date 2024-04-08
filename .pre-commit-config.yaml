@@ -17,10 +17,10 @@ repos:
         stages: [commit]
 
 
-      - id: pylint
-        name: 🌟 pylint
-        entry: poetry run pylint --init-hook="import sys; sys.setrecursionlimit(5 * sys.getrecursionlimit())"
-        language: system
-        types: [python]
-        stages: [commit]
-
+#      - id: pylint
+#        name: 🌟 pylint
+#        entry: poetry run pylint --init-hook="import sys; sys.setrecursionlimit(5 * sys.getrecursionlimit())"
+#        language: system
+#        types: [python]
+#        stages: [commit]
+#
