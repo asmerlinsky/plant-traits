@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from src.constants import NUM_PASS
-from src.model.model import TraitDetector
+from src.model.models import TraitDetector
 
 
 def R2_pred(y_pred, y_true):
@@ -25,7 +25,11 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
         x_image, x_train, y_train = data
 
         x_image = x_image.to(device, dtype=torch.float)
-        x_train = x_train.to(device, dtype=torch.float)
+        if isinstance(x_train, dict):
+            x_train = {key: item.to(device, dtype=torch.float) for key, item in x_train.items()}
+        else:
+            x_train = x_train.to(device, dtype=torch.float)
+
         y_train = y_train.to(device, dtype=torch.float)
 
         train_pred = model(x_image, x_train)
@@ -52,7 +56,10 @@ def val_eval(dataloader, model, loss_fn, device):
         x_img, x_val, y_val = data
 
         x_img = x_img.to(device, dtype=torch.float)
-        x_val = x_val.to(device, dtype=torch.float)
+        if isinstance(x_val, dict):
+            x_val = {key: val.to(device, dtype=torch.float) for key, val in x_val.items()}
+        else:
+            x_val = x_val.to(device, dtype=torch.float)
         y_val = y_val.to(device, dtype=torch.float)
 
         pred = model(x_img, x_val)

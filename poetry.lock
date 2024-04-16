@@ -908,6 +908,38 @@ files = [
 ]
 
 [[package]]
+name = "imageio"
+version = "2.34.0"
+description = "Library for reading and writing a wide range of image, video, scientific, and volumetric data formats."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "imageio-2.34.0-py3-none-any.whl", hash = "sha256:08082bf47ccb54843d9c73fe9fc8f3a88c72452ab676b58aca74f36167e8ccba"},
+    {file = "imageio-2.34.0.tar.gz", hash = "sha256:ae9732e10acf807a22c389aef193f42215718e16bd06eed0c5bb57e1034a4d53"},
+]
+
+[package.dependencies]
+numpy = "*"
+pillow = ">=8.3.2"
+
+[package.extras]
+all-plugins = ["astropy", "av", "imageio-ffmpeg", "pillow-heif", "psutil", "tifffile"]
+all-plugins-pypy = ["av", "imageio-ffmpeg", "pillow-heif", "psutil", "tifffile"]
+build = ["wheel"]
+dev = ["black", "flake8", "fsspec[github]", "pytest", "pytest-cov"]
+docs = ["numpydoc", "pydata-sphinx-theme", "sphinx (<6)"]
+ffmpeg = ["imageio-ffmpeg", "psutil"]
+fits = ["astropy"]
+full = ["astropy", "av", "black", "flake8", "fsspec[github]", "gdal", "imageio-ffmpeg", "itk", "numpydoc", "pillow-heif", "psutil", "pydata-sphinx-theme", "pytest", "pytest-cov", "sphinx (<6)", "tifffile", "wheel"]
+gdal = ["gdal"]
+itk = ["itk"]
+linting = ["black", "flake8"]
+pillow-heif = ["pillow-heif"]
+pyav = ["av"]
+test = ["fsspec[github]", "pytest", "pytest-cov"]
+tifffile = ["tifffile"]
+
+[[package]]
 name = "ipykernel"
 version = "6.29.3"
 description = "IPython Kernel for Jupyter"
@@ -3153,6 +3185,26 @@ files = [
 ]
 
 [[package]]
+name = "tqdm"
+version = "4.66.2"
+description = "Fast, Extensible Progress Meter"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tqdm-4.66.2-py3-none-any.whl", hash = "sha256:1ee4f8a893eb9bef51c6e35730cebf234d5d0b6bd112b0271e10ed7c24a02bd9"},
+    {file = "tqdm-4.66.2.tar.gz", hash = "sha256:6cd52cdf0fef0e0f543299cfc96fec90d7b8a7e88745f411ec33eb44d5ed3531"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "traitlets"
 version = "5.14.2"
 description = "Traitlets Python configuration system"
@@ -3330,4 +3382,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "34ce301a1c303ec741e19ec9804032aa1e530f3504a75695aeb9318d68d9036d"
+content-hash = "4de61377128de847108f5d7060c8d23c57e02373f79444d5176b9abb79faed6b"

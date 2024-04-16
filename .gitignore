@@ -1,2 +1,10 @@
 data/*
 .idea/*
+
+*.csv
+.ipynb_checkpoints
+
+*.log
+*.bin
+__pycache__
+stored_weights/*

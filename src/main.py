@@ -4,8 +4,8 @@ from torch import nn, optim, save
 from torch.utils.data import DataLoader, random_split
 
 from src.constants import BATCH_SIZE, N_EPOCHS
-from src.model.dataset import PlantDataset, getTransforms
-from src.model.model import TraitDetector
+from src.model.dataset import PlantDataset, getTransforms, StratifiedPlantDataset
+from src.model.models import TraitDetector, StratifiedTraitDetector
 from src.model.train import R2_pred, train, val_eval
 from src.utils import set_device
 
@@ -29,7 +29,7 @@ def main():
 
     train_tf, val_tf = getTransforms()
 
-    dataset = PlantDataset(
+    dataset = StratifiedPlantDataset(#PlantDataset(
         "data/planttraits2024/transformed_train_df_2z.csv",
         "data/planttraits2024/train_images",
         applied_transforms=train_tf,
@@ -40,8 +40,11 @@ def main():
     # val_dataset = PlantDataset("data/planttraits2024/test.csv", "data/planttraits2024/test_images", applied_transforms=val_tf,
     #                            labeled=True)
 
-    detector = TraitDetector(
-        n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0]
+    # detector = TraitDetector(
+    #     n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0]
+    # )
+    detector = StratifiedTraitDetector(
+        n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0], groups_dict=dataset.groups_dict
     )
 
     loss_fn = nn.MSELoss(reduction="mean")
