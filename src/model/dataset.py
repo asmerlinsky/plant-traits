@@ -2,11 +2,12 @@ import pathlib
 
 import pandas as pd
 import torch
+from imageio.v3 import imread
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from imageio.v3 import imread
-from src.constants import SD, TARGETS, ID, IMG_SIZE
+
+from src.constants import ID, IMG_SIZE, SD, TARGETS
 
 
 class PlantDataset(Dataset):
@@ -32,12 +33,13 @@ class PlantDataset(Dataset):
 
         path = pathlib.Path(path_to_imgs)
 
-
         self.df = pd.read_csv(path_to_csv, dtype={"id": str})
 
         self.df.set_index(keys=[ID], drop=False, inplace=True)
 
-        self.images = self.df.loc[:, ID].apply(lambda idx: open(path / f"{idx}.jpeg", 'rb').read())
+        self.images = self.df.loc[:, ID].apply(
+            lambda idx: open(path / f"{idx}.jpeg", "rb").read()
+        )
 
         self.df.drop(axis=1, columns=[ID], inplace=True)
 
@@ -81,10 +83,7 @@ class PlantDataset(Dataset):
         )
 
 
-
 class StratifiedPlantDataset(Dataset):
-
-
 
     # targets = ["X4_mean", "X11_mean", "X18_mean", "X26_mean", "X50_mean", "X3112_mean"]
     targets = TARGETS
@@ -111,7 +110,9 @@ class StratifiedPlantDataset(Dataset):
 
         self.df.set_index(keys=[ID], drop=False, inplace=True)
 
-        self.images = self.df.loc[:, ID].apply(lambda idx: open(path / f"{idx}.jpeg", 'rb').read())
+        self.images = self.df.loc[:, ID].apply(
+            lambda idx: open(path / f"{idx}.jpeg", "rb").read()
+        )
 
         self.df.drop(axis=1, columns=[ID], inplace=True)
 
@@ -124,8 +125,6 @@ class StratifiedPlantDataset(Dataset):
             & (~self.df.columns.isin(self.drop_targets))
         ]
         self.groups_dict = self.get_grouped_variables()
-
-
 
         if applied_transforms:
             self.image_transforms = applied_transforms
@@ -141,13 +140,14 @@ class StratifiedPlantDataset(Dataset):
 
         plant_id = self.df.index[idx]
 
-
         if self.image_transforms:
             image = self.image_transforms(imread(self.images[plant_id]))
 
         dataset_groups = {}
         for g, variables in self.groups_dict.items():
-            dataset_groups[g] = torch.from_numpy(self.df.loc[plant_id, variables].values)
+            dataset_groups[g] = torch.from_numpy(
+                self.df.loc[plant_id, variables].values
+            )
 
         if self.labeled:
             return (
@@ -166,11 +166,12 @@ class StratifiedPlantDataset(Dataset):
 
         group_dict = {}
 
-        groups = self.train_columns.str.split('_').str[:2].str.join("_").unique()
+        groups = self.train_columns.str.split("_").str[:2].str.join("_").unique()
         for g in groups:
             group_dict[g] = self.train_columns[self.train_columns.str.contains(g)]
 
         return group_dict
+
 
 def getTransforms():
 
@@ -184,7 +185,6 @@ def getTransforms():
 
     preprocessing_transforms = [  # T.ToTensor(),
         transforms.Resize(size=IMG_SIZE),
-
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]
     train_transformer = transforms.Compose(

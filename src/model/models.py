@@ -53,6 +53,7 @@ class TraitDetector(nn.Module):
 
         return output
 
+
 class StratifiedTraitDetector(nn.Module):
 
     def __init__(self, n_classes, train_features, groups_dict: dict):
@@ -72,20 +73,27 @@ class StratifiedTraitDetector(nn.Module):
 
             net_elements += len(elements)
             if len(elements) > 1:
-                self.__setattr__(group, nn.Sequential(
-                nn.Linear(in_features=len(elements), out_features=train_features),
-                nn.LeakyReLU(),
-                # nn.Dropout(p=0.1),
-                nn.Linear(in_features=train_features, out_features=len(elements)),
-                nn.LeakyReLU(),
+                self.__setattr__(
+                    group,
+                    nn.Sequential(
+                        nn.Linear(
+                            in_features=len(elements), out_features=train_features
+                        ),
+                        nn.LeakyReLU(),
+                        # nn.Dropout(p=0.1),
+                        nn.Linear(
+                            in_features=train_features, out_features=len(elements)
+                        ),
+                        nn.LeakyReLU(),
+                    ),
                 )
-                                 )
             else:
                 self.__setattr__(group, nn.Identity())
 
-
         self.merge_nn = nn.Sequential(
-            nn.Linear(in_features=net_elements + train_features, out_features=train_features),
+            nn.Linear(
+                in_features=net_elements + train_features, out_features=train_features
+            ),
             # nn.Dropout(p=0.3),
             nn.LeakyReLU(),
             nn.Linear(in_features=train_features, out_features=n_classes),

@@ -1,8 +1,9 @@
 import numpy as np
 import torch
-from src.utils import DEVICE, BATCH_SIZE
+
 from src.constants import NUM_PASS
 from src.model.models import TraitDetector
+from src.utils import BATCH_SIZE, DEVICE
 
 
 class R2:
@@ -15,6 +16,7 @@ class R2:
 
     def inverse_transform(self):
         scaler.inverse_transform(self.y_pred)
+
     def pred(self):
         SS_residuals = torch.pow(self.y_pred - self.y_true, 2).sum(axis=0)
         SS_tot = torch.pow(self.y_true - self.y_true.mean(axis=0), 2).sum(axis=0)
@@ -36,7 +38,9 @@ def train(dataloader, train_size, model: TraitDetector, loss_fn, optimizer, devi
 
         x_image = x_image.to(device, dtype=torch.float)
         if isinstance(x_train, dict):
-            x_train = {key: item.to(device, dtype=torch.float) for key, item in x_train.items()}
+            x_train = {
+                key: item.to(device, dtype=torch.float) for key, item in x_train.items()
+            }
         else:
             x_train = x_train.to(device, dtype=torch.float)
 
@@ -67,7 +71,9 @@ def val_eval(dataloader, val_size, model, loss_fn, device, r2_instance: R2):
 
         x_img = x_img.to(device, dtype=torch.float)
         if isinstance(x_val, dict):
-            x_val = {key: val.to(device, dtype=torch.float) for key, val in x_val.items()}
+            x_val = {
+                key: val.to(device, dtype=torch.float) for key, val in x_val.items()
+            }
         else:
             x_val = x_val.to(device, dtype=torch.float)
         y_true = y_true.to(device, dtype=torch.float)
@@ -76,8 +82,7 @@ def val_eval(dataloader, val_size, model, loss_fn, device, r2_instance: R2):
 
         val_loss += loss_fn(pred, y_true)
 
-        r2_instance.y_pred[i:i + BATCH_SIZE] = pred
-        r2_instance.y_true[i:i + BATCH_SIZE] = y_true
+        r2_instance.y_pred[i : i + BATCH_SIZE] = pred
+        r2_instance.y_true[i : i + BATCH_SIZE] = y_true
 
-
-    return torch.sqrt(val_loss/val_size)
+    return torch.sqrt(val_loss / val_size)

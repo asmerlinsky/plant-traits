@@ -1,17 +1,18 @@
 import sys
+from os import cpu_count
 
+import numpy as np
 import torch
 from torch import nn, optim, save
 from torch.utils.data import DataLoader, random_split
-from os import cpu_count
-from src.constants import BATCH_SIZE, N_EPOCHS, LOG_TARGETS
-from src.model.dataset import PlantDataset, getTransforms, StratifiedPlantDataset
-from src.model.models import TraitDetector, StratifiedTraitDetector
+
+from src.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
+from src.model.dataset import PlantDataset, StratifiedPlantDataset, getTransforms
+from src.model.models import StratifiedTraitDetector, TraitDetector
 from src.model.train import R2, train, val_eval
-from src.utils import set_device
-from src.utils import benchmark_dataloader
-from src.preprocess_utils import inverse_transform, get_scaler
-import numpy as np
+from src.preprocess_utils import get_scaler, inverse_transform
+from src.utils import benchmark_dataloader, set_device
+
 PATH = "./stored_weights/non-strat-weights.model"
 DEVICE = set_device()
 
@@ -24,6 +25,7 @@ basicConfig(level=INFO, handlers=[file_handler, stdout_handler])
 
 logger = getLogger(__name__)
 
+
 def main():
     r2_est = []
     val_loss = []
@@ -32,15 +34,17 @@ def main():
     train_tf, val_tf = getTransforms()
 
     dataset = StratifiedPlantDataset(
-    # dataset = PlantDataset(
+        # dataset = PlantDataset(
         "data/planttraits2024/transformed_train_df_2.5z_wo_magnitude_ouliers_targets.csv",
         "data/planttraits2024/train_images",
         applied_transforms=train_tf,
         labeled=True,
-        num_plants=4000
+        num_plants=4000,
     )
 
-    log_mask = torch.tensor([tg in log_targets for tg in dataset.targets], dtype=torch.bool, device=DEVICE)
+    log_mask = torch.tensor(
+        [tg in log_targets for tg in dataset.targets], dtype=torch.bool, device=DEVICE
+    )
 
     train_dataset, val_dataset = random_split(dataset, [0.75, 0.25])
     # val_dataset = PlantDataset("data/planttraits2024/test.csv", "data/planttraits2024/test_images", applied_transforms=val_tf,
@@ -50,7 +54,9 @@ def main():
     #     n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0]
     # )
     detector = StratifiedTraitDetector(
-        n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0], groups_dict=dataset.groups_dict
+        n_classes=len(dataset.targets),
+        train_features=dataset.train_columns.shape[0],
+        groups_dict=dataset.groups_dict,
     )
 
     loss_fn = nn.MSELoss(reduction="mean")
@@ -80,15 +86,21 @@ def main():
 
     device = DEVICE  # our device (single GPU core)
     model = detector.to(device)  # put model onto the GPU core
-    standard_scaler = get_scaler('data/std_scaler.bin')
-    r2 = R2(len(val_dataset.indices), len(dataset.targets), scaler=standard_scaler, log_mask=log_mask)
-
-
-
+    standard_scaler = get_scaler("data/std_scaler.bin")
+    r2 = R2(
+        len(val_dataset.indices),
+        len(dataset.targets),
+        scaler=standard_scaler,
+        log_mask=log_mask,
+    )
 
     for epoch in range(N_EPOCHS):
-        t_loss = train(train_loader, len(train_dataset.indices), model, loss_fn, optimizer, device)
-        v_loss = val_eval(val_loader, len(val_dataset.indices), model, loss_fn, device, r2)
+        t_loss = train(
+            train_loader, len(train_dataset.indices), model, loss_fn, optimizer, device
+        )
+        v_loss = val_eval(
+            val_loader, len(val_dataset.indices), model, loss_fn, device, r2
+        )
 
         y_pred = standard_scaler.inverse_transform(y_pred)
         y_true = standard_scaler.inverse_transform(y_pred)
