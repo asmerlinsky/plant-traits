@@ -179,7 +179,7 @@ def getTransforms():
     aug_transforms = [
         transforms.RandomResizedCrop(size=IMG_SIZE),
         transforms.RandomRotation(degrees=180),
-        transforms.ColorJitter(.9, .4, .4, .4),
+        # transforms.ColorJitter(.7, .4, .2, .1),
     ]
 
     preprocessing_transforms = [  # T.ToTensor(),

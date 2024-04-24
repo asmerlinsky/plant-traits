@@ -24,19 +24,19 @@ class TraitDetector(nn.Module):
 
         self.tabular_nn = nn.Sequential(
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.ReLU(),
+            nn.LeakyReLU(),
         )
 
         self.merge_nn = nn.Sequential(
             nn.Linear(in_features=2 * train_features, out_features=train_features),
             # nn.Dropout(p=0.3),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(in_features=train_features, out_features=n_classes),
         )
 
@@ -74,10 +74,10 @@ class StratifiedTraitDetector(nn.Module):
             if len(elements) > 1:
                 self.__setattr__(group, nn.Sequential(
                 nn.Linear(in_features=len(elements), out_features=train_features),
-                nn.ReLU(),
+                nn.LeakyReLU(),
                 # nn.Dropout(p=0.1),
                 nn.Linear(in_features=train_features, out_features=len(elements)),
-                nn.ReLU(),
+                nn.LeakyReLU(),
                 )
                                  )
             else:
@@ -87,7 +87,7 @@ class StratifiedTraitDetector(nn.Module):
         self.merge_nn = nn.Sequential(
             nn.Linear(in_features=net_elements + train_features, out_features=train_features),
             # nn.Dropout(p=0.3),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(in_features=train_features, out_features=n_classes),
         )
 

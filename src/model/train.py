@@ -1,23 +1,33 @@
 import numpy as np
 import torch
-
+from src.utils import DEVICE, BATCH_SIZE
 from src.constants import NUM_PASS
 from src.model.models import TraitDetector
 
 
-def R2_pred(y_pred, y_true):
-    SS_residuals = torch.pow(y_pred - y_true, 2).sum(axis=0)
-    SS_tot = torch.pow(y_true - y_true.mean(axis=0), 2).sum(axis=0)
-    return 1 - SS_residuals / SS_tot
+class R2:
+
+    def __init__(self, val_size, num_targets, scaler, log_mask):
+        self.y_pred = torch.zeros((val_size, num_targets)).to(DEVICE)
+        self.y_true = torch.zeros((val_size, num_targets)).to(DEVICE)
+        self.scaler = scaler
+        self.log_mask = log_mask
+
+    def inverse_transform(self):
+        scaler.inverse_transform(self.y_pred)
+    def pred(self):
+        SS_residuals = torch.pow(self.y_pred - self.y_true, 2).sum(axis=0)
+        SS_tot = torch.pow(self.y_true - self.y_true.mean(axis=0), 2).sum(axis=0)
+        return 1 - SS_residuals / SS_tot
 
 
 def rmse(y_pred, y_true):
     return torch.pow(y_pred - y_true, 2).sum()
 
 
-def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
+def train(dataloader, train_size, model: TraitDetector, loss_fn, optimizer, device):
     model.train()
-    train_loss = []
+    train_loss = torch.zeros(1, device=DEVICE)
     optimizer.zero_grad()
 
     t_loss = 0
@@ -37,7 +47,7 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
         t_loss = loss_fn(train_pred, y_train)
         t_loss.backward()
 
-        train_loss.append(t_loss.cpu().detach().numpy())
+        train_loss += t_loss
 
         if i % NUM_PASS == 0:
 
@@ -48,35 +58,26 @@ def train(dataloader, model: TraitDetector, loss_fn, optimizer, device):
     return np.sqrt(np.mean(train_loss))
 
 
-def val_eval(dataloader, model, loss_fn, device):
-    y_val_list = []
-    pred_list = []
-    val_loss_list = []
+def val_eval(dataloader, val_size, model, loss_fn, device, r2_instance: R2):
+
+    val_loss = torch.zeros(1, device=DEVICE)
+
     for i, data in enumerate(dataloader):
-        x_img, x_val, y_val = data
+        x_img, x_val, y_true = data
 
         x_img = x_img.to(device, dtype=torch.float)
         if isinstance(x_val, dict):
             x_val = {key: val.to(device, dtype=torch.float) for key, val in x_val.items()}
         else:
             x_val = x_val.to(device, dtype=torch.float)
-        y_val = y_val.to(device, dtype=torch.float)
+        y_true = y_true.to(device, dtype=torch.float)
 
         pred = model(x_img, x_val)
 
-        val_loss = loss_fn(pred, y_val)
+        val_loss += loss_fn(pred, y_true)
 
-        y_val_np = y_val.cpu().detach().numpy().tolist()
-        pred_np = pred.cpu().detach().numpy().tolist()
+        r2_instance.y_pred[i:i + BATCH_SIZE] = pred
+        r2_instance.y_true[i:i + BATCH_SIZE] = y_true
 
-        val_loss = val_loss.cpu().detach().numpy()
 
-        val_loss_list.append(val_loss)
-        y_val_list.extend(y_val_np)
-        pred_list.extend(pred_np)
-    #         print(val_loss_list)
-    return (
-        torch.FloatTensor(y_val_list),
-        torch.FloatTensor(pred_list),
-        np.sqrt(np.mean(val_loss_list)),
-    )
+    return torch.sqrt(val_loss/val_size)
