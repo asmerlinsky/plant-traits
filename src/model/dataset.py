@@ -44,7 +44,7 @@ class PlantDataset(Dataset):
         self.df.drop(axis=1, columns=[ID], inplace=True)
 
         if num_plants is not None:
-            self.df = self.df.iloc[:num_plants]
+            self.df = self.df.sample(num_plants)
 
         self.train_columns = self.df.columns[
             (~self.df.columns.isin(self.targets))
@@ -111,13 +111,13 @@ class StratifiedPlantDataset(Dataset):
         self.df.set_index(keys=[ID], drop=False, inplace=True)
 
         self.images = self.df.loc[:, ID].apply(
-            lambda idx: open(path / f"{idx}.jpeg", "rb").read()
+            lambda idx: open(path / f"{idx}_orig.jpeg", "rb").read()
         )
 
         self.df.drop(axis=1, columns=[ID], inplace=True)
 
         if num_plants is not None:
-            self.df = self.df.iloc[:num_plants]
+            self.df = self.df.sample(num_plants)
 
         self.train_columns = self.df.columns[
             (~self.df.columns.isin(self.targets))
@@ -178,17 +178,15 @@ def getTransforms():
     first_transform = [transforms.ToTensor()]
 
     aug_transforms = [
-        transforms.RandomResizedCrop(size=IMG_SIZE),
+        transforms.RandomResizedCrop(size=IMG_SIZE, scale=(0.2, 0.8)),
         transforms.RandomRotation(degrees=180),
-        # transforms.ColorJitter(.7, .4, .2, .1),
+        transforms.ColorJitter(0.5, 0.4, 0.2, 0.05),
     ]
 
     preprocessing_transforms = [  # T.ToTensor(),
         transforms.Resize(size=IMG_SIZE),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]
-    train_transformer = transforms.Compose(
-        first_transform + aug_transforms + preprocessing_transforms
-    )
+    aug_transformer = transforms.Compose(first_transform + aug_transforms)
     val_transformer = transforms.Compose(first_transform + preprocessing_transforms)
-    return train_transformer, val_transformer
+    return aug_transformer, val_transformer

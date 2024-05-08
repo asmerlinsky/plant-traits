@@ -1,10 +1,14 @@
-import torch
 import time
-from src.constants import BATCH_SIZE
+
+import torch
 from tqdm import tqdm
+
+from src.constants import BATCH_SIZE
+
 
 def get_variable_cols(variable, columns):
     return columns[columns.str.contains(variable)]
+
 
 def benchmark_dataloader(dataloader):
 
@@ -12,9 +16,13 @@ def benchmark_dataloader(dataloader):
     train_dataloader_iter = iter(dataloader)
     t_start = time.perf_counter_ns()
     for _ in tqdm(range(N)):
-        next(train_dataloader_iter)
+        try:
+            next(train_dataloader_iter)
+        except:
+            break
     n_images_per_second = (N * BATCH_SIZE) / (time.perf_counter_ns() - t_start) * 1e9
-    print(f'# Images/Second: {n_images_per_second:.0f}')
+    print(f"# Images/Second: {n_images_per_second:.0f}")
+
 
 def set_device():
     device = "cuda" if torch.cuda.is_available() else "cpu"

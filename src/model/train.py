@@ -6,20 +6,42 @@ from src.model.models import TraitDetector
 from src.utils import BATCH_SIZE, DEVICE
 
 
+class scaler:
+    def __init__(self, scaler_df):
+        self.mean = torch.from_numpy(scaler_df["mean"].values).to(DEVICE)
+        self.std = torch.from_numpy(scaler_df["std"].values).to(DEVICE)
+
+    def transform(self, mat):
+        return (mat - self.mean) / self.std
+
+    def inverse_transform(self, mat):
+        return (mat + self.std) + self.mean
+
+
 class R2:
 
-    def __init__(self, val_size, num_targets, scaler, log_mask):
-        self.y_pred = torch.zeros((val_size, num_targets)).to(DEVICE)
+    def __init__(self, val_size, num_targets, scaler_df, log_mask):
+        self.y_pred = torch.zeros(
+            (val_size, num_targets),
+        ).to(DEVICE)
         self.y_true = torch.zeros((val_size, num_targets)).to(DEVICE)
-        self.scaler = scaler
-        self.log_mask = log_mask
 
-    def inverse_transform(self):
-        scaler.inverse_transform(self.y_pred)
+        self.scaler = scaler(scaler_df)
+        self.log_mask = torch.from_numpy(log_mask).to(DEVICE)
+
+    def __call__(self):
+        return self.pred()
+
+    def inverse_transform(self, y):
+        inverted = self.scaler.inverse_transform(y)
+        inverted[:, self.log_mask] = torch.exp(inverted[:, self.log_mask])
+        return inverted
 
     def pred(self):
-        SS_residuals = torch.pow(self.y_pred - self.y_true, 2).sum(axis=0)
-        SS_tot = torch.pow(self.y_true - self.y_true.mean(axis=0), 2).sum(axis=0)
+        orig_y_pred = self.inverse_transform(self.y_pred)
+        orig_y_true = self.inverse_transform(self.y_true)
+        SS_residuals = torch.pow(orig_y_pred - orig_y_true, 2).sum(axis=0)
+        SS_tot = torch.pow(orig_y_true - orig_y_true.mean(axis=0), 2).sum(axis=0)
         return 1 - SS_residuals / SS_tot
 
 
@@ -59,30 +81,32 @@ def train(dataloader, train_size, model: TraitDetector, loss_fn, optimizer, devi
             optimizer.zero_grad()
 
     model.eval()
-    return np.sqrt(np.mean(train_loss))
+    return np.sqrt(train_loss.item() / train_size)
 
 
 def val_eval(dataloader, val_size, model, loss_fn, device, r2_instance: R2):
 
     val_loss = torch.zeros(1, device=DEVICE)
+    with torch.no_grad():
+        for i, data in enumerate(dataloader):
+            x_img, x_val, y_true = data
 
-    for i, data in enumerate(dataloader):
-        x_img, x_val, y_true = data
+            x_img = x_img.to(device, dtype=torch.float)
+            if isinstance(x_val, dict):
+                x_val = {
+                    key: val.to(device, dtype=torch.float) for key, val in x_val.items()
+                }
+            else:
+                x_val = x_val.to(device, dtype=torch.float)
+            y_true = y_true.to(device, dtype=torch.float)
 
-        x_img = x_img.to(device, dtype=torch.float)
-        if isinstance(x_val, dict):
-            x_val = {
-                key: val.to(device, dtype=torch.float) for key, val in x_val.items()
-            }
-        else:
-            x_val = x_val.to(device, dtype=torch.float)
-        y_true = y_true.to(device, dtype=torch.float)
+            pred = model(x_img, x_val)
 
-        pred = model(x_img, x_val)
+            val_loss += loss_fn(pred, y_true)
 
-        val_loss += loss_fn(pred, y_true)
+            starting_idx = i * BATCH_SIZE
 
-        r2_instance.y_pred[i : i + BATCH_SIZE] = pred
-        r2_instance.y_true[i : i + BATCH_SIZE] = y_true
+            r2_instance.y_pred[starting_idx : starting_idx + pred.shape[0]] = pred
+            r2_instance.y_true[starting_idx : starting_idx + pred.shape[0]] = y_true
 
-    return torch.sqrt(val_loss / val_size)
+    return np.sqrt(val_loss.item() / val_size)

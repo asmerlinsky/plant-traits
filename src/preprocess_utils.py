@@ -98,7 +98,7 @@ def scale_variables(df, test_df=None, log_scale_targets=[]):
 
 
 def get_scaler(path):
-    return load("data/std_scaler.bin")
+    return pd.read_csv("data/std_scaler.csv", index_col="targets")
 
 
 def inverse_transform(
