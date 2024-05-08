@@ -7,6 +7,7 @@ from typing import Dict
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights, resnet50
+from torchvision.models.efficientnet import EfficientNet_V2_S_Weights, efficientnet_v2_s
 
 
 class TraitDetector(nn.Module):
@@ -15,12 +16,14 @@ class TraitDetector(nn.Module):
         super(TraitDetector, self).__init__()
 
         # The network is defined as a sequence of operations
-        self.resnet = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-        self.resnet.requires_grad_(False)
-        self.resnet.fc = nn.Linear(in_features=2048, out_features=train_features)
-        # self.resnet.train = lambda x: True
-        #
-        # self.resnet.training = False
+        # self.backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        # self.resnet.requires_grad_(False)
+        # self.backbone.fc = nn.Linear(in_features=2048, out_features=train_features)
+
+        self.backbone = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        self.backbone.classifier = nn.Linear(
+            in_features=1280, out_features=train_features
+        )
 
         self.tabular_nn = nn.Sequential(
             nn.Linear(in_features=train_features, out_features=train_features),
@@ -42,7 +45,7 @@ class TraitDetector(nn.Module):
 
     # Specify the computations performed on the data
     def forward(self, x_image, x_row):
-        x_image = self.resnet(x_image)
+        x_image = self.backbone(x_image)
         x_row = self.tabular_nn(x_row)
 
         return self.merge_nn(torch.cat((x_image, x_row), axis=1))
@@ -108,7 +111,7 @@ class StratifiedTraitDetector(nn.Module):
 
         return self.merge_nn(torch.cat(group_tensors, axis=1))
 
-    def predict(self, x_image, x_row_dict):
+    def predict(self, x_image, x_row):
 
         output = self.forward(x_image, x_row)
 

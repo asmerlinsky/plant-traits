@@ -2389,6 +2389,17 @@ spelling = ["pyenchant (>=3.2,<4.0)"]
 testutils = ["gitpython (>3)"]
 
 [[package]]
+name = "pynvml"
+version = "11.5.0"
+description = "Python Bindings for the NVIDIA Management Library"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pynvml-11.5.0-py3-none-any.whl", hash = "sha256:5cce014ac01b098d08f06178f86c37be409b80b2e903a5a03ce15eed60f55e25"},
+    {file = "pynvml-11.5.0.tar.gz", hash = "sha256:d027b21b95b1088b9fc278117f9f61b7c67f8e33a787e9f83f735f0f71ac32d0"},
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.1.2"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -3382,4 +3393,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4de61377128de847108f5d7060c8d23c57e02373f79444d5176b9abb79faed6b"
+content-hash = "9db3a0a9b2e81a901730f41038da822608e495b6cdc45cc009f6cbac6b49b942"
