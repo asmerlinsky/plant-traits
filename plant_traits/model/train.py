@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from src.constants import NUM_PASS
-from src.model.models import TraitDetector
-from src.utils import BATCH_SIZE, DEVICE
+from plant_traits.constants import NUM_PASS
+from plant_traits.model.models import TraitDetector
+from plant_traits.utils import BATCH_SIZE, DEVICE
 
 
 class scaler:

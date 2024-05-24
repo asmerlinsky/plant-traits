@@ -1,7 +1,7 @@
 import time
 
 import torch
-from src.constants import BATCH_SIZE
+from plant_traits.constants import BATCH_SIZE
 from tqdm import tqdm
 
 

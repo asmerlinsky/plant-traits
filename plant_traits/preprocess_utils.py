@@ -3,7 +3,7 @@ import pandas as pd
 from joblib import load
 from scipy.stats import zscore
 from sklearn.preprocessing import StandardScaler
-from src.constants import ID, SD, SPECIES, TARGETS
+from plant_traits.constants import ID, SD, SPECIES, TARGETS
 
 
 def drop_by_magnitude(df, magnitude_dict):

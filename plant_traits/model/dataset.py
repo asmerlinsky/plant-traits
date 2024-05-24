@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from imageio.v3 import imread
 from PIL import Image
-from src.constants import ID, IMG_SIZE, SD, TARGETS
+from plant_traits.constants import ID, IMG_SIZE, SD, TARGETS
 from torch.utils.data import Dataset
 from torchvision import transforms
 

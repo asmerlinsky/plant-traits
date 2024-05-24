@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from src.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
-from src.model.dataset import getTransforms
-from src.species_model.dataset import PlantSpeciesDataset
-from src.species_model.models import SpeciesClassifier
-from src.species_model.train import train_species, val_eval
-from src.utils import benchmark_dataloader, set_device
+from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
+from plant_traits.model.dataset import getTransforms
+from plant_traits.species_model.dataset import PlantSpeciesDataset
+from plant_traits.species_model.models import SpeciesClassifier
+from plant_traits.species_model.train import train_species, val_eval
+from plant_traits.utils import benchmark_dataloader, set_device
 from torch import nn, optim, save
 from torch.utils.data import DataLoader, Subset
 
