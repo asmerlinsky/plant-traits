@@ -53,14 +53,10 @@ def augment_func(
             save_image(tf, f"{aug_path}/{id_}_aug{i}.jpeg")
 
 
-class PlantDataset(Dataset):
-    # targets = ["X4_mean", "X11_mean", "X18_mean", "X26_mean", "X50_mean", "X3112_mean"]
-    # drop_targets = ["X4_mean", "X11_mean", "X18_mean", "X50_mean", "X3112_mean"]
-
-    # targets = ["X4_mean", "X18_mean", "X50_mean"]
-    #
-    # drop_targets = ["X11_mean", "X26_mean", "X3112_mean"]
-
+class PlantSpeciesDataset(Dataset):
+    """
+    Dataset class for the species model. I included an augmentation method to generate and store augmented images in data and read them from there
+    """
     targets = TARGETS
     drop_targets = []
     sd = SD
@@ -73,9 +69,22 @@ class PlantDataset(Dataset):
         path_to_species_csv,
         applied_transforms=None,
         labeled=False,
-        num_plants=None,
-        img_size=None,
+        full_dataset_pct_subset=None,
     ):
+        """
+        Reading the features dataframe to map images to species.
+        Images are read into memory to speed up reading (from what i've tested it doesn't make too much of a difference though
+        it's possible to get a balanced subset of the dataset
+
+        It's also possible to train a subset of species by adapting the preprocessing notebook, but model weights won't be compatible ofc
+
+        :param path_to_csv:
+        :param path_to_imgs:
+        :param path_to_species_csv:
+        :param applied_transforms:
+        :param labeled:
+        :param full_dataset_pct_subset:
+        """
         logger.info("Loading dataset")
         path = pathlib.Path(path_to_imgs)
 
@@ -108,6 +117,7 @@ class PlantDataset(Dataset):
 
         self.images_df = self.images_df[self.images_df[ID].isin(self.features_df.index)]
 
+        # It's possible to transform during training, but I'm running an augmented image dataset to run the transforms only once
         if applied_transforms:
             self.image_transforms = applied_transforms
         else:
@@ -115,6 +125,13 @@ class PlantDataset(Dataset):
 
         self.num_species = self.species_df.shape[0]
         self.labeled = labeled
+
+        ## Due to the dataset size, I added the option to retrieve a balanced subset
+        if full_dataset_pct_subset is not None:
+            self.images_df = self.images_df.merge(self.features_df[SPECIES], left_on=ID, right_index=True, how='left').groupby(
+                SPECIES).apply(lambda x: x.sample(frac=full_dataset_pct_subset))
+            self.images_df = self.images_df.droplevel(0).drop(axis=1, labels=[SPECIES])
+
         logger.info("Done!")
 
     def __len__(self):
@@ -158,22 +175,6 @@ class PlantDataset(Dataset):
             (transforms.ToTensor(), transforms.Resize(size=IMG_SIZE))
         )
 
-        #
-        # num_groups = round(np.ceil(species_counts.shape[0]/n_parallel))
-        # shuffled = species_counts.sample(frac=1)
-        # species_count_groups = [shuffled.iloc[i: i+num_groups].copy() for i in range(0, species_counts.shape[0], num_groups)]
-        #
-        # Parallel(n_jobs=n_parallel, verbose=50, backend='threading')(delayed(augment_func)(i+1, species_counts_subset,
-        #                                                                      self.features_df[self.features_df[SPECIES].isin(species_counts_subset.index)],
-        #                                                                      self.images_df[self.images_df[ID].isin(self.features_df[self.features_df[SPECIES].isin(species_counts_subset.index)].index)],
-        #                                                                      aug_path,
-        #                                                                      img_per_specie,
-        #                                                                      aug_transform,
-        #                                                                      orig_transform)
-        #
-        #                    for i, species_counts_subset in enumerate(species_count_groups)
-        #                                 )
-        #
         for specie, num_images in tqdm(species_counts.items()):
             ids = self.features_df[self.features_df[SPECIES] == specie].index
 
@@ -201,12 +202,15 @@ class PlantDataset(Dataset):
 # def save_jpeg(tensor, )
 
 if __name__ == "__main__":
+    """
+    If called, runs the augmentation, might be better to move to another module.
+    """
     augment = False
     aug_tf, val_tf = getTransforms()
 
     if augment:
 
-        dataset = PlantDataset(
+        dataset = PlantSpeciesDataset(
             "data/planttraits2024/transformed_train_df_species_1.5z_targets.csv",
             "data/planttraits2024/train_images",
             "data/planttraits2024/plant_means.csv",
@@ -219,7 +223,7 @@ if __name__ == "__main__":
 
     else:
 
-        dataset = PlantDataset(
+        dataset = PlantSpeciesDataset(
             "data/planttraits2024/transformed_train_df_species_1.5z_targets.csv",
             "data/planttraits2024/train_augmented_312",
             "data/planttraits2024/plant_means.csv",
