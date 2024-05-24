@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from src.constants import NUM_PASS
 from src.species_model.models import SpeciesClassifier
 from src.utils import BATCH_SIZE, DEVICE
@@ -36,7 +35,7 @@ def train_species(
         t_loss = loss_fn(train_pred, y_target)
         t_loss.backward()
 
-        train_loss += t_loss/NUM_PASS
+        train_loss += t_loss / NUM_PASS
 
         tp = train_pred.topk(topk_acc)[1].t()
         true_pos += tp.eq(y_target.view(1, -1).expand_as(tp)).any(axis=0).sum().item()
@@ -62,7 +61,7 @@ def val_eval(dataloader, topk_acc, model, loss_fn, device):
             y_target = y_target.to(device, dtype=torch.long)
 
             pred = model(x_img)
-            val_loss += loss_fn(pred, y_target)/NUM_PASS
+            val_loss += loss_fn(pred, y_target) / NUM_PASS
 
             # true_pos += (torch.argmax(pred, dim=1) == y_target).sum().item()
             tp = pred.topk(topk_acc)[1].t()

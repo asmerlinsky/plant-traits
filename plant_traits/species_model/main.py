@@ -6,16 +6,14 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from torch import nn, optim, save
-from torch.utils.data import DataLoader, Subset
-
 from src.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
 from src.model.dataset import getTransforms
-
 from src.species_model.dataset import PlantSpeciesDataset
 from src.species_model.models import SpeciesClassifier
 from src.species_model.train import train_species, val_eval
 from src.utils import benchmark_dataloader, set_device
+from torch import nn, optim, save
+from torch.utils.data import DataLoader, Subset
 
 READ_PATH = "./stored_weights/species-weights2.model"
 SAVE_PATH = "./stored_weights/species-weights3.model"
@@ -88,7 +86,7 @@ def species_main():
     model = detector.to(device)  # put model onto the GPU core
     model.load_state_dict(torch.load(READ_PATH))
 
-    top_pct = .1
+    top_pct = 0.1
     topk = int(top_pct * dataset.num_species)
     for epoch in range(N_EPOCHS):
 
@@ -117,6 +115,7 @@ def species_main():
 
     return val_loss, train_loss, model.cpu()
 
+
 def test_lr():
 
     val_loss = []
@@ -130,7 +129,7 @@ def test_lr():
         path_to_species_csv="data/planttraits2024/wo_outliers_plant_means.csv",
         applied_transforms=None,
         labeled=True,
-        full_dataset_pct_subset=0.2
+        full_dataset_pct_subset=0.2,
     )
     logger.info(
         "Dataset size is %s. There are %s species", len(dataset), dataset.num_species
@@ -168,10 +167,8 @@ def test_lr():
 
     device = DEVICE  # our device (single GPU core)
 
-
-
     scaler_df = pd.read_csv("data/std_scaler.csv", index_col="targets")
-    top_pct = .1
+    top_pct = 0.1
     topk = int(top_pct * dataset.num_species)
 
     learning_rates = np.logspace(-5, -3, 8)

@@ -1,9 +1,8 @@
 import time
 
 import torch
-from tqdm import tqdm
-
 from src.constants import BATCH_SIZE
+from tqdm import tqdm
 
 
 def get_variable_cols(variable, columns):

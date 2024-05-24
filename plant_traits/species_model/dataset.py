@@ -9,14 +9,13 @@ import torch
 from imageio.v3 import imread
 from joblib import Parallel, delayed
 from PIL import Image
+from src.constants import ID, IMG_SIZE, SD, SPECIES, TARGETS
+from src.model.dataset import getTransforms
 from torch.nn.functional import one_hot
 from torch.utils.data import Dataset
 from torchvision import transforms
 from torchvision.utils import save_image
 from tqdm import tqdm
-
-from src.constants import ID, IMG_SIZE, SD, SPECIES, TARGETS
-from src.model.dataset import getTransforms
 
 logger = getLogger(__name__)
 
@@ -57,6 +56,7 @@ class PlantSpeciesDataset(Dataset):
     """
     Dataset class for the species model. I included an augmentation method to generate and store augmented images in data and read them from there
     """
+
     targets = TARGETS
     drop_targets = []
     sd = SD
@@ -128,8 +128,13 @@ class PlantSpeciesDataset(Dataset):
 
         ## Due to the dataset size, I added the option to retrieve a balanced subset
         if full_dataset_pct_subset is not None:
-            self.images_df = self.images_df.merge(self.features_df[SPECIES], left_on=ID, right_index=True, how='left').groupby(
-                SPECIES).apply(lambda x: x.sample(frac=full_dataset_pct_subset))
+            self.images_df = (
+                self.images_df.merge(
+                    self.features_df[SPECIES], left_on=ID, right_index=True, how="left"
+                )
+                .groupby(SPECIES)
+                .apply(lambda x: x.sample(frac=full_dataset_pct_subset))
+            )
             self.images_df = self.images_df.droplevel(0).drop(axis=1, labels=[SPECIES])
 
         logger.info("Done!")

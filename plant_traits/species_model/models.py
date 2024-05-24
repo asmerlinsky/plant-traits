@@ -10,6 +10,7 @@ class SpeciesClassifier(nn.Module):
     A classifier por different plant species, It has a lot of room for improvement given the huge amount of different labels.
 
     """
+
     def __init__(self, n_classes):
         super(SpeciesClassifier, self).__init__()
 
@@ -18,16 +19,18 @@ class SpeciesClassifier(nn.Module):
 
         self.backbone.requires_grad_(False)
 
-        self.backbone.features[-1][0] = nn.Conv2d(256, 4096, kernel_size=(1, 1), stride=(1, 1), bias=False)
-        self.backbone.features[-1][1] = nn.BatchNorm2d(4096, eps=0.001, momentum=.1, affine=True, track_running_stats=True)
+        self.backbone.features[-1][0] = nn.Conv2d(
+            256, 4096, kernel_size=(1, 1), stride=(1, 1), bias=False
+        )
+        self.backbone.features[-1][1] = nn.BatchNorm2d(
+            4096, eps=0.001, momentum=0.1, affine=True, track_running_stats=True
+        )
 
         self.backbone.classifier = nn.Sequential(
-            nn.Linear(
-                in_features=4096, out_features=8192),
+            nn.Linear(in_features=4096, out_features=8192),
             nn.GELU(),
             # nn.Dropout(.2),
-            nn.Linear(
-                in_features=8192, out_features=n_classes),
+            nn.Linear(in_features=8192, out_features=n_classes),
         )
 
     def forward(self, x_image):

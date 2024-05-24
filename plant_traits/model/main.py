@@ -5,15 +5,14 @@ from os import cpu_count
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn, optim, save
-from torch.utils.data import DataLoader, random_split
-
 from src.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
 from src.model.dataset import PlantDataset, StratifiedPlantDataset, getTransforms
 from src.model.models import StratifiedTraitDetector, TraitDetector
 from src.model.train import R2, train, val_eval
 from src.preprocess_utils import get_scaler, inverse_transform
 from src.utils import benchmark_dataloader, set_device
+from torch import nn, optim, save
+from torch.utils.data import DataLoader, random_split
 
 PATH = "./stored_weights/non-strat-weights.model"
 DEVICE = set_device()

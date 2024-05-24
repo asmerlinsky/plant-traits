@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from src.constants import NUM_PASS
 from src.model.models import TraitDetector
 from src.utils import BATCH_SIZE, DEVICE
