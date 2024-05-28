@@ -6,17 +6,18 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
+from torch import nn, optim, save
+from torch.utils.data import DataLoader, Subset
+
 from plant_traits.augmentation import getTransforms
+from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
 from plant_traits.species_model.dataset import PlantSpeciesDataset
 from plant_traits.species_model.models import SpeciesClassifier
 from plant_traits.species_model.train import train_species, val_eval
 from plant_traits.utils import benchmark_dataloader, set_device
-from torch import nn, optim, save
-from torch.utils.data import DataLoader, Subset
 
 # READ_PATH = "./stored_weights/species-weights4.model"
-READ_PATH = "./stored_weights/species-weights1_0.9264.model"
+READ_PATH = "./stored_weights/species-weights4_0.8732.model"
 # SAVE_PATH = "./stored_weights/species-weights5.model"
 DEVICE = set_device()
 
@@ -28,6 +29,7 @@ basicConfig(level=INFO, handlers=[file_handler, stdout_handler])
 
 
 logger = getLogger(__name__)
+
 
 def species_main():
 
@@ -60,10 +62,10 @@ def species_main():
         n_classes=dataset.num_species,
     )
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(detector.parameters(), lr=0.005, weight_decay=1e-3)
+    optimizer = optim.AdamW(detector.parameters(), lr=0.00005, weight_decay=1e-3)
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.5, patience=2, threshold_mode="rel", threshold=1e-3
+        optimizer, factor=0.1, patience=2, threshold_mode="rel", threshold=1e-3
     )
 
     train_loader = DataLoader(
@@ -87,7 +89,7 @@ def species_main():
     model = detector.to(device)  # put model onto the GPU core
     model.load_state_dict(torch.load(READ_PATH))
 
-    top_pct = 1/dataset.num_species
+    top_pct = 1 / dataset.num_species
     topk = int(top_pct * dataset.num_species)
     j = 0
     for epoch in range(N_EPOCHS):
@@ -113,7 +115,10 @@ def species_main():
         train_loss.append(t_loss)
         scheduler.step(v_loss)
         if epoch % 1 == 0:
-            save(model.state_dict(), f"./stored_weights/species-weights{j}_{val_pos/len(val_dataset.indices):1.4f}.model")
+            save(
+                model.state_dict(),
+                f"./stored_weights/species-weights{j}_{val_pos/len(val_dataset.indices):1.4f}.model",
+            )
             j += 1
 
     return val_loss, train_loss, model.cpu()

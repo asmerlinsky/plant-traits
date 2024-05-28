@@ -7,7 +7,13 @@ from plant_traits.utils import BATCH_SIZE, DEVICE
 
 
 def train_species(
-    dataloader, topk_acc, model: SpeciesClassifier, loss_fn, optimizer, device
+    dataloader,
+    topk_acc,
+    model: SpeciesClassifier,
+    loss_fn,
+    optimizer,
+    device,
+    num_pass=NUM_PASS,
 ):
     """
     Train function, run by accumulating gradients to get a reasonable batch size
@@ -36,12 +42,12 @@ def train_species(
         t_loss = loss_fn(train_pred, y_target)
         t_loss.backward()
 
-        train_loss += t_loss / NUM_PASS
+        train_loss += t_loss / num_pass
 
         tp = train_pred.topk(topk_acc)[1].t()
         true_pos += tp.eq(y_target.view(1, -1).expand_as(tp)).any(axis=0).sum().item()
 
-        if i % NUM_PASS == 0:
+        if i % num_pass == 0:
 
             optimizer.step()
             optimizer.zero_grad()
@@ -50,7 +56,7 @@ def train_species(
     return train_loss.item(), true_pos
 
 
-def val_eval(dataloader, topk_acc, model, loss_fn, device):
+def val_eval(dataloader, topk_acc, model, loss_fn, device, num_pass=NUM_PASS):
     true_pos = 0
     val_loss = torch.zeros(1, device=DEVICE)
     with torch.no_grad():
@@ -62,7 +68,7 @@ def val_eval(dataloader, topk_acc, model, loss_fn, device):
             y_target = y_target.to(device, dtype=torch.long)
 
             pred = model(x_img)
-            val_loss += loss_fn(pred, y_target) / NUM_PASS
+            val_loss += loss_fn(pred, y_target) / num_pass
 
             # true_pos += (torch.argmax(pred, dim=1) == y_target).sum().item()
             tp = pred.topk(topk_acc)[1].t()
