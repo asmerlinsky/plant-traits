@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+
 from plant_traits.constants import NUM_PASS
 from plant_traits.species_model.models import SpeciesClassifier
 from plant_traits.utils import BATCH_SIZE, DEVICE
@@ -25,7 +26,7 @@ def train_species(
 
     for i, data in enumerate(dataloader):
 
-        x_image, x_train, y_target, _ = data
+        x_image, _, y_target, _ = data
 
         x_image = x_image.to(device, dtype=torch.float)
         y_target = y_target.to(device, dtype=torch.long)
@@ -55,7 +56,7 @@ def val_eval(dataloader, topk_acc, model, loss_fn, device):
     with torch.no_grad():
         for i, data in enumerate(dataloader):
 
-            x_img, x_val, y_target, _ = data
+            x_img, _, y_target, _ = data
 
             x_img = x_img.to(device, dtype=torch.float)
             y_target = y_target.to(device, dtype=torch.long)

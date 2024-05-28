@@ -5,14 +5,18 @@ from os import cpu_count
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
+from torch import nn, optim, save
+from torch.utils.data import DataLoader, Subset
+
+from plant_traits.augmentation import getTransforms
 from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
-from plant_traits.model.dataset import PlantDataset, StratifiedPlantDataset, getTransforms
+from plant_traits.model.dataset import PlantDataset, StratifiedPlantDataset
 from plant_traits.model.models import StratifiedTraitDetector, TraitDetector
 from plant_traits.model.train import R2, train, val_eval
 from plant_traits.preprocess_utils import get_scaler, inverse_transform
+from plant_traits.species_model.dataset import PlantSpeciesDataset
 from plant_traits.utils import benchmark_dataloader, set_device
-from torch import nn, optim, save
-from torch.utils.data import DataLoader, random_split
 
 PATH = "./stored_weights/non-strat-weights.model"
 DEVICE = set_device()
@@ -32,29 +36,26 @@ def main():
     val_loss = []
     train_loss = []
 
-    train_tf, val_tf = getTransforms()
-
-    # dataset = StratifiedPlantDataset(
-    # # dataset = PlantDataset(
-    #     "data/planttraits2024/transformed_train_df_2.5z_wo_magnitude_ouliers_targets.csv",
-    #     "data/planttraits2024/train_images",
-    #     applied_transforms=train_tf,
-    #     labeled=True,
-    #     # num_plants=4000,
-    # )
-
     dataset = StratifiedPlantDataset(
-        # dataset = PlantDataset(
-        "data/planttraits2024/transformed_train_df_species_1.5z_targets_subset.csv",
+        "data/planttraits2024/transformed_train_df_species_1.5z_targets.csv",
         "data/planttraits2024/train_augmented_312",
-        applied_transforms=val_tf,
+        path_to_species_csv="data/planttraits2024/wo_outliers_plant_means.csv",
+        applied_transforms=None,
         labeled=True,
-        # num_plants=4000,
+        full_dataset_pct_subset=0.2,
     )
 
     log_mask = np.array([tg in LOG_TARGETS for tg in dataset.targets], dtype=bool)
 
-    train_dataset, val_dataset = random_split(dataset, [0.8, 0.2])
+    train_indexes, test_indexes = train_test_split(
+        range(dataset.images_df.shape[0]),
+        stratify=dataset.features_df.species.loc[dataset.images_df["id"]].values,
+    )
+
+    train_dataset, val_dataset = Subset(dataset, train_indexes), Subset(
+        dataset, test_indexes
+    )
+
     # val_dataset = PlantDataset("data/planttraits2024/test.csv", "data/planttraits2024/test_images", applied_transforms=val_tf,
     #                            labeled=True)
 
@@ -63,6 +64,7 @@ def main():
     # )
     detector = StratifiedTraitDetector(
         n_classes=len(dataset.targets),
+        n_species=dataset.num_species,
         train_features=dataset.train_columns.shape[0],
         groups_dict=dataset.groups_dict,
     )
@@ -71,11 +73,11 @@ def main():
 
     loss_fn = nn.MSELoss(reduction="mean")
     # optimizer = optim.Adam(detector.parameters(), lr=0.005, weight_decay=1e-2)
-    optimizer = optim.AdamW(detector.parameters(), lr=0.05, weight_decay=1e-3)
-    # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.5, patience=5, threshold_mode="rel"
-    )
+    optimizer = optim.AdamW(detector.parameters(), lr=0.0005, weight_decay=1e-3)
+    #     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
+    #     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer, factor=0.5, patience=5, threshold_mode="rel"
+    # )
 
     train_loader = DataLoader(
         train_dataset,

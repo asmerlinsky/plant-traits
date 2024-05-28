@@ -7,12 +7,15 @@ from typing import Dict
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights, resnet50
-from torchvision.models.efficientnet import EfficientNet_V2_S_Weights, efficientnet_v2_s
+from torchvision.models.efficientnet import (EfficientNet_V2_S_Weights,
+                                             efficientnet_v2_s)
+
+from plant_traits.species_model.models import SpeciesClassifier
 
 
 class TraitDetector(nn.Module):
 
-    def __init__(self, n_classes, train_features):
+    def __init__(self, n_classes, train_features, species_weights_path):
         super(TraitDetector, self).__init__()
 
         # The network is defined as a sequence of operations
@@ -20,32 +23,30 @@ class TraitDetector(nn.Module):
         # self.resnet.requires_grad_(False)
         # self.backbone.fc = nn.Linear(in_features=2048, out_features=train_features)
 
-        self.backbone = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
-        self.backbone.classifier = nn.Linear(
-            in_features=1280, out_features=train_features
-        )
+        self.backbone = SpeciesClassifier(n_classes)
+        self.backbone.load_state_dict(torch.load(species_weights_path))
 
         self.tabular_nn = nn.Sequential(
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.LeakyReLU(),
+            nn.GELU(),
             # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.LeakyReLU(),
+            nn.GELU(),
             # nn.Dropout(p=0.1),
             nn.Linear(in_features=train_features, out_features=train_features),
-            nn.LeakyReLU(),
+            nn.GELU(),
         )
 
         self.merge_nn = nn.Sequential(
-            nn.Linear(in_features=2 * train_features, out_features=train_features),
+            nn.Linear(in_features=train_features, out_features=train_features),
             # nn.Dropout(p=0.3),
-            nn.LeakyReLU(),
+            nn.GELU(),
             nn.Linear(in_features=train_features, out_features=n_classes),
         )
 
     # Specify the computations performed on the data
     def forward(self, x_image, x_row):
-        x_image = self.backbone(x_image)
+        speccies_pred = self.backbone(x_image)
         x_row = self.tabular_nn(x_row)
 
         return self.merge_nn(torch.cat((x_image, x_row), axis=1))

@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights, resnet50
-from torchvision.models.efficientnet import EfficientNet_V2_S_Weights, efficientnet_v2_s
+from torchvision.models.efficientnet import (EfficientNet_V2_S_Weights,
+                                             efficientnet_v2_s)
 from torchvision.models.swin_transformer import Swin_V2_B_Weights, swin_v2_b
 
 
@@ -34,9 +35,13 @@ class SpeciesClassifier(nn.Module):
         )
 
     def forward(self, x_image):
-        x = self.backbone(x_image)
-        return nn.functional.softmax(x, dim=1)
+        return self.backbone(x_image)
 
     def predict(self, x_image):
         output = self.forward(x_image)
+        # output = nn.functional.softmax(output, dim=1)
         return torch.argmax(output, dim=1)
+
+    def predict_prob(self, x_image):
+        output = self.forward(x_image)
+        return nn.functional.softmax(output, dim=1)

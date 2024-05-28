@@ -9,13 +9,14 @@ import torch
 from imageio.v3 import imread
 from joblib import Parallel, delayed
 from PIL import Image
-from plant_traits.constants import ID, IMG_SIZE, SD, SPECIES, TARGETS
-from plant_traits.model.dataset import getTransforms
 from torch.nn.functional import one_hot
 from torch.utils.data import Dataset
 from torchvision import transforms
 from torchvision.utils import save_image
 from tqdm import tqdm
+
+from plant_traits.augmentation import getTransforms
+from plant_traits.constants import ID, IMG_SIZE, SD, SPECIES, TARGETS
 
 logger = getLogger(__name__)
 
