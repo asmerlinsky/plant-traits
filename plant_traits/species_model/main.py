@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
-from plant_traits.model.dataset import getTransforms
+from plant_traits.augmentation import getTransforms
 from plant_traits.species_model.dataset import PlantSpeciesDataset
 from plant_traits.species_model.models import SpeciesClassifier
 from plant_traits.species_model.train import train_species, val_eval
@@ -15,8 +15,9 @@ from plant_traits.utils import benchmark_dataloader, set_device
 from torch import nn, optim, save
 from torch.utils.data import DataLoader, Subset
 
-READ_PATH = "./stored_weights/species-weights2.model"
-SAVE_PATH = "./stored_weights/species-weights3.model"
+# READ_PATH = "./stored_weights/species-weights4.model"
+READ_PATH = "./stored_weights/species-weights1_0.9264.model"
+# SAVE_PATH = "./stored_weights/species-weights5.model"
 DEVICE = set_device()
 
 from logging import INFO, FileHandler, StreamHandler, basicConfig, getLogger
@@ -27,7 +28,6 @@ basicConfig(level=INFO, handlers=[file_handler, stdout_handler])
 
 
 logger = getLogger(__name__)
-
 
 def species_main():
 
@@ -50,6 +50,7 @@ def species_main():
     train_indexes, test_indexes = train_test_split(
         range(dataset.images_df.shape[0]),
         stratify=dataset.features_df.species.loc[dataset.images_df["id"]].values,
+        random_state=2,
     )
     train_dataset, val_dataset = Subset(dataset, train_indexes), Subset(
         dataset, test_indexes
@@ -59,10 +60,10 @@ def species_main():
         n_classes=dataset.num_species,
     )
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(detector.parameters(), lr=0.0001, weight_decay=1e-3)
+    optimizer = optim.AdamW(detector.parameters(), lr=0.005, weight_decay=1e-3)
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.98, patience=5, threshold_mode="rel", threshold=1e-6
+        optimizer, factor=0.5, patience=2, threshold_mode="rel", threshold=1e-3
     )
 
     train_loader = DataLoader(
@@ -86,8 +87,9 @@ def species_main():
     model = detector.to(device)  # put model onto the GPU core
     model.load_state_dict(torch.load(READ_PATH))
 
-    top_pct = 0.1
+    top_pct = 1/dataset.num_species
     topk = int(top_pct * dataset.num_species)
+    j = 0
     for epoch in range(N_EPOCHS):
 
         start = time.time()
@@ -110,8 +112,9 @@ def species_main():
         val_loss.append(v_loss)
         train_loss.append(t_loss)
         scheduler.step(v_loss)
-        if epoch % 5 == 0:
-            save(model.state_dict(), SAVE_PATH)
+        if epoch % 1 == 0:
+            save(model.state_dict(), f"./stored_weights/species-weights{j}_{val_pos/len(val_dataset.indices):1.4f}.model")
+            j += 1
 
     return val_loss, train_loss, model.cpu()
 
@@ -129,7 +132,7 @@ def test_lr():
         path_to_species_csv="data/planttraits2024/wo_outliers_plant_means.csv",
         applied_transforms=None,
         labeled=True,
-        full_dataset_pct_subset=0.2,
+        # full_dataset_pct_subset=0.2,
     )
     logger.info(
         "Dataset size is %s. There are %s species", len(dataset), dataset.num_species
