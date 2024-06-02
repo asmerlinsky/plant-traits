@@ -1,13 +1,15 @@
 import pathlib
 
+import numpy as np
 import pandas as pd
 import torch
 from imageio.v3 import imread
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from plant_traits.constants import ID, SD, TARGETS
+from plant_traits.constants import ID, LOG_TARGETS, SD, TARGETS
 from plant_traits.species_model.dataset import PlantSpeciesDataset
+from plant_traits.utils import scaler
 
 
 class PlantDataset(Dataset):
@@ -100,11 +102,14 @@ class StratifiedPlantDataset(PlantSpeciesDataset):
         path_to_csv,
         path_to_imgs,
         path_to_species_csv,
+        device,
+        scaler_df,
+        transform_species=True,
         applied_transforms=None,
         labeled=False,
         full_dataset_pct_subset=None,
     ):
-        super(PlantSpeciesDataset, self).__init__(
+        super().__init__(
             path_to_csv,
             path_to_imgs,
             path_to_species_csv,
@@ -113,6 +118,16 @@ class StratifiedPlantDataset(PlantSpeciesDataset):
             full_dataset_pct_subset,
         )
         self.groups_dict = self.get_grouped_variables()
+        if transform_species:
+            log_mask = np.array([tg in LOG_TARGETS for tg in self.targets], dtype=bool)
+            self.species_df = self.species_df[self.targets]
+            self.species_df.iloc[:, log_mask] = self.species_df.iloc[:, log_mask].apply(
+                np.log
+            )
+            self.scaler = scaler(scaler_df)
+            self.species_df = self.scaler.transform(
+                torch.from_numpy(self.species_df.values).to(device)
+            )
 
     def __len__(self):
         return self.df.shape[0]
@@ -141,7 +156,6 @@ class StratifiedPlantDataset(PlantSpeciesDataset):
         return (
             image,
             dataset_groups,
-            None,
         )
 
     def get_grouped_variables(self):

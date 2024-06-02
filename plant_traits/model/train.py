@@ -1,51 +1,9 @@
 import numpy as np
 import torch
+
 from plant_traits.constants import NUM_PASS
 from plant_traits.model.models import TraitDetector
-from plant_traits.utils import BATCH_SIZE, DEVICE
-
-
-class scaler:
-    def __init__(self, scaler_df):
-        self.mean = torch.from_numpy(scaler_df["mean"].values).to(DEVICE)
-        self.std = torch.from_numpy(scaler_df["std"].values).to(DEVICE)
-
-    def transform(self, mat):
-        return (mat - self.mean) / self.std
-
-    def inverse_transform(self, mat):
-        return (mat + self.std) + self.mean
-
-
-class R2:
-
-    def __init__(self, val_size, num_targets, scaler_df, log_mask):
-        self.y_pred = torch.zeros(
-            (val_size, num_targets),
-        ).to(DEVICE)
-        self.y_true = torch.zeros((val_size, num_targets)).to(DEVICE)
-
-        self.scaler = scaler(scaler_df)
-        self.log_mask = torch.from_numpy(log_mask).to(DEVICE)
-
-    def __call__(self):
-        return self.pred()
-
-    def inverse_transform(self, y):
-        inverted = self.scaler.inverse_transform(y)
-        inverted[:, self.log_mask] = torch.exp(inverted[:, self.log_mask])
-        return inverted
-
-    def pred(self):
-        orig_y_pred = self.inverse_transform(self.y_pred)
-        orig_y_true = self.inverse_transform(self.y_true)
-        SS_residuals = torch.pow(orig_y_pred - orig_y_true, 2).sum(axis=0)
-        SS_tot = torch.pow(orig_y_true - orig_y_true.mean(axis=0), 2).sum(axis=0)
-        return 1 - SS_residuals / SS_tot
-
-
-def rmse(y_pred, y_true):
-    return torch.pow(y_pred - y_true, 2).sum()
+from plant_traits.utils import BATCH_SIZE, DEVICE, R2
 
 
 def train(dataloader, train_size, model: TraitDetector, loss_fn, optimizer, device):

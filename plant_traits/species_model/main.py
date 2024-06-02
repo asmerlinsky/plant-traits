@@ -13,11 +13,11 @@ from plant_traits.augmentation import getTransforms
 from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
 from plant_traits.species_model.dataset import PlantSpeciesDataset
 from plant_traits.species_model.models import SpeciesClassifier
-from plant_traits.species_model.train import train_species, val_eval
+from plant_traits.species_model.train import batch_predict, train_species, val_eval
 from plant_traits.utils import benchmark_dataloader, set_device
 
 # READ_PATH = "./stored_weights/species-weights4.model"
-READ_PATH = "./stored_weights/species-weights4_0.8732.model"
+READ_PATH = "./stored_weights/species-weights18_0.8974.model"
 # SAVE_PATH = "./stored_weights/species-weights5.model"
 DEVICE = set_device()
 
@@ -58,9 +58,7 @@ def species_main():
         dataset, test_indexes
     )
 
-    detector = SpeciesClassifier(
-        n_classes=dataset.num_species,
-    )
+    detector = SpeciesClassifier(n_classes=dataset.num_species)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(detector.parameters(), lr=0.00005, weight_decay=1e-3)
 
@@ -214,3 +212,51 @@ def test_lr():
                 train_loss.append(t_loss)
             loss_dict[lr, wd] = (train_loss, val_loss)
     return loss_dict
+
+
+def predict_targets():
+    predict_batch_size = 128
+
+    test_dataset = PlantSpeciesDataset(
+        "data/planttraits2024/transformed_test_df_species_1.5z_targets.csv",
+        "data/planttraits2024/test_images",
+        path_to_species_csv="data/planttraits2024/wo_outliers_plant_means.csv",
+        applied_transforms=None,
+        labeled=False,
+        # full_dataset_pct_subset=0.2
+    )
+    logger.info(
+        "Dataset size is %s. There are %s species",
+        len(test_dataset),
+        test_dataset.num_species,
+    )
+
+    ## Balancing dataset, since there are ~17000 classes
+
+    detector = SpeciesClassifier(
+        n_classes=test_dataset.num_species,
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=predict_batch_size,
+        shuffle=False,
+        num_workers=cpu_count() - 2,
+        pin_memory=True,
+    )
+
+    device = DEVICE  # our device (single GPU core)
+    model = detector.to(device)  # put model onto the GPU core
+    model.load_state_dict(torch.load(READ_PATH))
+
+    predictions = batch_predict(test_loader, model, DEVICE, predict_batch_size)
+
+    targets = test_dataset.species_df.loc[predictions.to("cpu").numpy().astype("str")][
+        test_dataset.targets
+    ]
+
+    targets = targets.rename(
+        {col: col.split("_")[0] for col in targets.columns}, axis=1
+    )
+
+    return targets

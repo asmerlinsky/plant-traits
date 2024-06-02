@@ -13,10 +13,10 @@ from plant_traits.augmentation import getTransforms
 from plant_traits.constants import BATCH_SIZE, LOG_TARGETS, N_EPOCHS
 from plant_traits.model.dataset import PlantDataset, StratifiedPlantDataset
 from plant_traits.model.models import StratifiedTraitDetector, TraitDetector
-from plant_traits.model.train import R2, train, val_eval
+from plant_traits.model.train import train, val_eval
 from plant_traits.preprocess_utils import get_scaler, inverse_transform
 from plant_traits.species_model.dataset import PlantSpeciesDataset
-from plant_traits.utils import benchmark_dataloader, set_device
+from plant_traits.utils import R2, benchmark_dataloader, set_device
 
 PATH = "./stored_weights/non-strat-weights.model"
 DEVICE = set_device()
@@ -30,16 +30,23 @@ basicConfig(level=INFO, handlers=[file_handler, stdout_handler])
 
 logger = getLogger(__name__)
 
+SPECIES_WEIGHT_PATH = "./stored_weights/species-weights18_0.8974.model"
+
 
 def main():
     r2_est = []
     val_loss = []
     train_loss = []
 
+    scaler_df = pd.read_csv("data/std_scaler.csv", index_col="targets")
+
     dataset = StratifiedPlantDataset(
         "data/planttraits2024/transformed_train_df_species_1.5z_targets.csv",
         "data/planttraits2024/train_augmented_312",
         path_to_species_csv="data/planttraits2024/wo_outliers_plant_means.csv",
+        device=DEVICE,
+        scaler_df=scaler_df,
+        transform_species=True,
         applied_transforms=None,
         labeled=True,
         full_dataset_pct_subset=0.2,
@@ -50,6 +57,7 @@ def main():
     train_indexes, test_indexes = train_test_split(
         range(dataset.images_df.shape[0]),
         stratify=dataset.features_df.species.loc[dataset.images_df["id"]].values,
+        random_state=2,
     )
 
     train_dataset, val_dataset = Subset(dataset, train_indexes), Subset(
@@ -67,6 +75,7 @@ def main():
         n_species=dataset.num_species,
         train_features=dataset.train_columns.shape[0],
         groups_dict=dataset.groups_dict,
+        species_weights_path=SPECIES_WEIGHT_PATH,
     )
     # model = TheModelClass(*args, **kwargs)
     # model.load_state_dict(torch.load(PATH))
@@ -75,9 +84,9 @@ def main():
     # optimizer = optim.Adam(detector.parameters(), lr=0.005, weight_decay=1e-2)
     optimizer = optim.AdamW(detector.parameters(), lr=0.0005, weight_decay=1e-3)
     #     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
-    #     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, factor=0.5, patience=5, threshold_mode="rel"
-    # )
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.5, patience=5, threshold_mode="rel"
+    )
 
     train_loader = DataLoader(
         train_dataset,
@@ -100,7 +109,7 @@ def main():
     model = detector.to(device)  # put model onto the GPU core
     # model.load_state_dict(torch.load(PATH))
     # standard_scaler = get_scaler("data/std_scaler.bin")
-    scaler_df = pd.read_csv("data/std_scaler.csv", index_col="targets")
+
     r2 = R2(
         len(val_dataset.indices),
         len(dataset.targets),
