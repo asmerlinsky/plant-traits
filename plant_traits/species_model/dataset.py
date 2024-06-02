@@ -164,8 +164,6 @@ class PlantSpeciesDataset(Dataset):
         return (
             image,
             torch.from_numpy(self.features_df.loc[img_id, self.train_columns].values),
-            None,
-            None,
         )
 
     def augment(

@@ -77,3 +77,17 @@ def val_eval(dataloader, topk_acc, model, loss_fn, device, num_pass=NUM_PASS):
             )
 
     return val_loss.item(), true_pos
+
+
+def batch_predict(dataloader, model, device, batch_size=BATCH_SIZE):
+    predictions = torch.zeros(len(dataloader.dataset), device=device, dtype=torch.long)
+    with torch.no_grad():
+        for i, data in enumerate(dataloader):
+            (
+                x_img,
+                _,
+            ) = data
+            x_img = x_img.to(device, dtype=torch.float)
+            predictions[i * batch_size : (i + 1) * batch_size] = model.predict(x_img)
+
+    return predictions
