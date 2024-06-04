@@ -9,7 +9,7 @@ from torchvision import transforms
 
 from plant_traits.constants import ID, LOG_TARGETS, SD, TARGETS
 from plant_traits.species_model.dataset import PlantSpeciesDataset
-from plant_traits.utils import scaler
+from plant_traits.utils import Scaler
 
 
 class PlantDataset(Dataset):
@@ -124,10 +124,8 @@ class StratifiedPlantDataset(PlantSpeciesDataset):
             self.species_df.iloc[:, log_mask] = self.species_df.iloc[:, log_mask].apply(
                 np.log
             )
-            self.scaler = scaler(scaler_df)
-            self.species_df = self.scaler.transform(
-                torch.from_numpy(self.species_df.values).to(device)
-            )
+            self.scaler = Scaler(scaler_df, numpy=True)
+            self.species_df = self.scaler.transform(self.species_df)
 
     def __len__(self):
         return self.df.shape[0]

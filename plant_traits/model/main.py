@@ -38,7 +38,7 @@ def main():
     val_loss = []
     train_loss = []
 
-    scaler_df = pd.read_csv("data/std_scaler.csv", index_col="targets")
+    scaler_df = pd.read_csv("data/std_scaler_species_1.5z.csv", index_col="targets")
 
     dataset = StratifiedPlantDataset(
         "data/planttraits2024/transformed_train_df_species_1.5z_targets.csv",
@@ -52,7 +52,8 @@ def main():
         full_dataset_pct_subset=0.2,
     )
 
-    log_mask = np.array([tg in LOG_TARGETS for tg in dataset.targets], dtype=bool)
+    # log_mask = np.array([tg in LOG_TARGETS for tg in dataset.targets], dtype=bool)
+    log_mask = None
 
     train_indexes, test_indexes = train_test_split(
         range(dataset.images_df.shape[0]),
@@ -70,19 +71,35 @@ def main():
     # detector = TraitDetector(
     #     n_classes=len(dataset.targets), train_features=dataset.train_columns.shape[0]
     # )
-    detector = StratifiedTraitDetector(
+    model = StratifiedTraitDetector(
         n_classes=len(dataset.targets),
         n_species=dataset.num_species,
         train_features=dataset.train_columns.shape[0],
         groups_dict=dataset.groups_dict,
         species_weights_path=SPECIES_WEIGHT_PATH,
+        species_df=dataset.species_df,
+        topk=50,
     )
     # model = TheModelClass(*args, **kwargs)
     # model.load_state_dict(torch.load(PATH))
 
     loss_fn = nn.MSELoss(reduction="mean")
+
+    no_decay, decay = [], []
+    for name, p in model.named_parameters():
+        if "topk_W" in name:
+            no_decay += [p]
+        else:
+            decay += [p]
+
     # optimizer = optim.Adam(detector.parameters(), lr=0.005, weight_decay=1e-2)
-    optimizer = optim.AdamW(detector.parameters(), lr=0.0005, weight_decay=1e-3)
+    optimizer = optim.AdamW(
+        [
+            {"params": decay, "weight_decay": 1e-3},
+            {"params": no_decay, "weight_decay": 0},
+        ],
+        lr=0.01,
+    )
     #     # optimizer = optim.SGD(detector.parameters(), lr=0.001, momentum=.5, weight_decay=1e-3)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=0.5, patience=5, threshold_mode="rel"
@@ -106,7 +123,7 @@ def main():
     # benchmark_dataloader(train_loader)
 
     device = DEVICE  # our device (single GPU core)
-    model = detector.to(device)  # put model onto the GPU core
+    model = model.to(device)  # put model onto the GPU core
     # model.load_state_dict(torch.load(PATH))
     # standard_scaler = get_scaler("data/std_scaler.bin")
 

@@ -4,10 +4,12 @@ import logging
 import math
 from typing import Dict
 
+import numpy as np
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights, resnet50
-from torchvision.models.efficientnet import EfficientNet_V2_S_Weights, efficientnet_v2_s
+from torchvision.models.efficientnet import (EfficientNet_V2_S_Weights,
+                                             efficientnet_v2_s)
 
 from plant_traits.species_model.models import SpeciesClassifier
 
@@ -62,22 +64,29 @@ class StratifiedTraitDetector(nn.Module):
     def __init__(
         self,
         n_classes,
+        n_species,
         train_features,
         groups_dict: dict,
-        species_weights_path,
         species_df,
         topk,
+        species_weights_path=None,
     ):
         super(StratifiedTraitDetector, self).__init__()
 
         # The network is defined as a sequence of operations
-        self.backbone = SpeciesClassifier(n_classes)
+        self.backbone = SpeciesClassifier(n_species)
         self.backbone.requires_grad_(False)
+        if species_weights_path is not None:
+            self.backbone.load_state_dict(torch.load(species_weights_path))
 
-        self.species_tensor = torch.from_numpy(species_df.values)
+        self.species_tensor = torch.nn.Parameter(
+            torch.from_numpy(species_df.values.astype(np.float32)), requires_grad=False
+        )
 
         self.topk = topk
-        self.topk_W = torch.nn.Parameter(torch.ones(self.topk, dtype=torch.long))
+        self.topk_W = torch.nn.Parameter(
+            torch.ones((self.topk, n_classes), dtype=torch.float)
+        )
 
         # self.resnet.train = lambda x: True
         #
@@ -120,21 +129,19 @@ class StratifiedTraitDetector(nn.Module):
 
     # Specify the computations performed on the data
     def forward(self, x_image, x_row_dict):
-        sp_probs = self.backbone.predict(x_image)
+        sp_probs = self.backbone.predict_prob(x_image)
 
         topk_predictions = self.species_tensor[sp_probs.topk(self.topk)[1]]
 
-        species_prediction = torch.mul(self.topk_W, topk_predictions)
+        species_prediction = torch.mul(topk_predictions, self.topk_W).sum(axis=1)
 
-        group_tensors = [x_image]
+        group_tensors = []
         for group in self.var_groups:
             group_tensors.append(self.__getattr__(group)(x_row_dict[group]))
 
         merged_features = self.merge_features_nn(torch.cat(group_tensors, axis=1))
 
-        return self.merge_features_nn(
-            torch.cat([merged_features, species_prediction], axis=1)
-        )
+        return species_prediction + merged_features
 
     def predict(self, x_image, x_row):
 
